@@ -1,0 +1,7 @@
+# pvd has no runtime dependencies: standard library only (Python 3.8+).
+#
+# tkinter is needed only for the graphical window and is not installable with pip.
+# It ships with CPython on Windows and macOS.  On Debian/Ubuntu:
+#     sudo apt install python3-tk
+# Every command-line mode (--list, --gate, --example, one-shot design runs) works
+# without it.

@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pvd"
+version = "0.1.0"
+description = "Patient-sequence driven AAV vector designer for Parkinson's proteostasis programs"
+readme = "README.md"
+requires-python = ">=3.8"
+keywords = ["bioinformatics", "gene-therapy", "aav", "genbank", "parkinsons",
+            "alpha-synuclein", "proteostasis", "chaperone-mediated-autophagy"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Environment :: X11 Applications",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+]
+# Runtime dependencies: none.  The tool is standard library only; tkinter ships with
+# CPython on Windows and macOS and is python3-tk on Debian/Ubuntu.
+dependencies = []
+
+[project.optional-dependencies]
+# Only needed to build a stand-alone executable.
+build = ["pyinstaller>=6.0"]
+
+[project.scripts]
+pvd = "pvd.cli.run:main"
+
+[tool.setuptools.packages.find]
+include = ["pvd*"]
