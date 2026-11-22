@@ -62,7 +62,29 @@ cassette.
 
 ---
 
-## Install
+## Download a prebuilt executable
+
+[**Releases**](https://github.com/DrigandMossa/PVD/releases/latest) — one single file, nothing
+to install.
+
+| File | For |
+|---|---|
+| `pvd-windows-x86_64.exe` | Windows |
+| `pvd-macos-arm64` | macOS, Apple silicon |
+| `pvd-linux-x86_64` | Linux |
+| `pvd.pyz` | Any OS or architecture with Python 3.8+ already installed |
+
+Run it with no arguments for the window, or `--help` for the command-line tool. On macOS and
+Linux, `chmod +x pvd-*` first. The binaries are unsigned, so macOS Gatekeeper and Windows
+SmartScreen will both object on first launch.
+
+`pvd.pyz` is a zipapp rather than a frozen binary — ~40 kB instead of ~10 MB, works on any
+architecture, and needs a Python already on the machine. pvd is stdlib-only, so it needs
+nothing else.
+
+---
+
+## Install from source
 
 ```bash
 git clone https://github.com/DrigandMossa/PVD
@@ -74,11 +96,23 @@ No runtime dependencies. `tkinter` is needed only for the window and is not pip-
 — it ships with CPython on Windows and macOS; on Debian/Ubuntu `sudo apt install python3-tk`.
 Every command-line mode works without it.
 
-### Stand-alone executable
+### Building the executables yourself
 
 ```bash
 pip install -r requirements-dev.txt
 pyinstaller pvd.spec       # -> dist/pvd  (dist/pvd.exe on Windows)
+```
+
+PyInstaller cross-compiles nothing: each binary must be built on its own platform. That is
+what the `release` workflow is for — pushing a `v*` tag builds all three on GitHub's runners,
+smoke-tests each one, and attaches them to a release along with the zipapp.
+
+The zipapp needs no build tooling at all:
+
+```bash
+mkdir -p build/zapp && cp -r pvd build/zapp/
+printf '%s\n' 'import sys' 'from pvd.cli.run import main' '' 'if __name__ == "__main__":' '    sys.exit(main())' > build/zapp/__main__.py
+python -m zipapp build/zapp -o pvd.pyz -p "/usr/bin/env python3" -c
 ```
 
 `console=True` is deliberate: a windowed build opens the designer but silently discards the

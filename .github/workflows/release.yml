@@ -4,11 +4,25 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  # One native single-file binary per platform, via PyInstaller.
   build:
     strategy:
+      fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            bin: pvd
+            asset: pvd-linux-x86_64
+          - os: macos-latest
+            bin: pvd
+            asset: pvd-macos-arm64
+          - os: windows-latest
+            bin: pvd.exe
+            asset: pvd-windows-x86_64.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +32,99 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest tests/ -q
       - run: pyinstaller pvd.spec
+      # Smoke-test the frozen binary before it ships: a spec that misses a lazy
+      # import builds cleanly and fails on first run.
+      - name: Smoke-test the binary
+        shell: bash
+        run: |
+          ./dist/${{ matrix.bin }} --version
+          ./dist/${{ matrix.bin }} --list > /dev/null
+      - name: Name the binary for this platform
+        shell: bash
+        run: mv "dist/${{ matrix.bin }}" "dist/${{ matrix.asset }}"
       - uses: actions/upload-artifact@v4
         with:
-          name: pvd-${{ matrix.os }}
-          path: dist/*
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  # A portable fallback. pvd is stdlib-only, so a zipapp is a genuine single
+  # file that runs on any OS and architecture with Python 3.8+ installed.
+  zipapp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build pvd.pyz
+        run: |
+          mkdir -p build/zapp
+          cp -r pvd build/zapp/
+          find build/zapp -name __pycache__ -type d -exec rm -rf {} +
+          cat > build/zapp/__main__.py <<'PY'
+          """Zipapp entry point: delegates to pvd.cli.run.main."""
+
+          import sys
+
+          from pvd.cli.run import main
+
+          if __name__ == "__main__":
+              sys.exit(main())
+          PY
+          python -m zipapp build/zapp -o pvd.pyz -p "/usr/bin/env python3" -c
+          chmod +x pvd.pyz
+          ./pvd.pyz --version
+          ./pvd.pyz --list > /dev/null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pvd.pyz
+          path: pvd.pyz
+          if-no-files-found: error
+
+  # Attach everything to a GitHub Release, so the binaries are downloadable
+  # without a login and do not expire with the Actions run.
+  publish:
+    needs: [build, zipapp]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - run: ls -l assets
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<'MD'
+          Patient-sequence driven AAV vector designer for the three Parkinson's
+          proteostasis arms — clearance, barrier and chaperone.
+
+          ## Which file to download
+
+          | File | For |
+          |---|---|
+          | `pvd-windows-x86_64.exe` | Windows |
+          | `pvd-macos-arm64` | macOS, Apple silicon |
+          | `pvd-linux-x86_64` | Linux |
+          | `pvd.pyz` | Any OS with Python 3.8+ installed |
+
+          Run with no arguments for the window; `--help` for the command-line
+          tool; `--example DIR` writes a synthetic patient set that exercises
+          the eligibility gate.
+
+          On macOS and Linux, make it executable first: `chmod +x pvd-*`.
+          macOS and Windows will both warn about an unsigned binary from an
+          unidentified developer — these are unsigned.
+
+          **Research design tool.** Library elements use typical lengths and are
+          written as runs of `N` until verified sequences are supplied. Nothing
+          here is a clinical protocol. See `docs/` for the design notes behind
+          the gate rules.
+          MD
+          gh release create "${GITHUB_REF_NAME}" assets/* \
+            --title "pvd ${GITHUB_REF_NAME}" \
+            --notes-file notes.md
