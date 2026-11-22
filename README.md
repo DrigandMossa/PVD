@@ -13,6 +13,14 @@ single-file PyInstaller build.
 > biosafety approval; a clinical product requires GMP manufacturing, preclinical safety
 > data and regulatory authorization. Nothing here is a clinical protocol.
 
+**The science behind the rules is in [`docs/`](docs/)** — three program notes covering the
+three-arm framework and the comparative ranking
+([`proteostasis-levers.md`](docs/proteostasis-levers.md)), the disaggregase trio and the
+packaging arithmetic that defeats it ([`disaggregase-program.md`](docs/disaggregase-program.md)),
+and the HSF1 route across Alzheimer's, Parkinson's and prion disease
+([`hsf1-program.md`](docs/hsf1-program.md)). Every rule the gate enforces is justified in one
+of them.
+
 ---
 
 ## Why the gate is the point of the tool
