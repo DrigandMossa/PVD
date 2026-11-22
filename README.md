@@ -13,6 +13,10 @@ single-file PyInstaller build.
 > biosafety approval; a clinical product requires GMP manufacturing, preclinical safety
 > data and regulatory authorization. Nothing here is a clinical protocol.
 
+**New to this? [`docs/start-here.md`](docs/start-here.md)** explains the disease, the
+delivery problem, the eligibility gate and every command in plain language, with no
+background assumed.
+
 **The science behind the rules is in [`docs/`](docs/)** — three program notes covering the
 three-arm framework and the comparative ranking
 ([`proteostasis-levers.md`](docs/proteostasis-levers.md)), the disaggregase trio and the

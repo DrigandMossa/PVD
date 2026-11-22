@@ -23,7 +23,11 @@ def _codons_for(aa: str) -> List[str]:
 
 def _make_cds(n_aa: int, seed: int) -> str:
     rnd = random.Random(seed)
-    pool = [a for a in set(CODONS.values()) if a != "*"]
+    # sorted(), not set() order: iteration order for a set of strings depends on hash
+    # randomisation, which differs per process.  Without the sort, a fixed seed still
+    # produced a different reference CDS on every run, so the planted variants the README
+    # and classifications.tsv name changed each time --example was called.
+    pool = sorted(a for a in set(CODONS.values()) if a != "*")
     # ATG plus n_aa-1 sense codons translates to n_aa residues; TAA is the terminator.
     out = ["ATG"]
     for _ in range(n_aa - 1):

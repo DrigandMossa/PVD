@@ -3,8 +3,13 @@
 The scientific basis for the code. Every rule the eligibility gate enforces is justified in
 one of these documents, and each is written to be read on its own.
 
+**New here?** Read [`start-here.md`](start-here.md) first — it explains the biology, the
+delivery problem and every command in plain language, assuming no background at all. The
+three documents below are the technical versions.
+
 | Document | What it covers | What in the code it justifies |
 |---|---|---|
+| [`start-here.md`](start-here.md) | A plain-language walkthrough: what the disease does, what a gene therapy is, how to run the tool, and how to read its output | the user-facing behaviour of the whole CLI |
 | [`proteostasis-levers.md`](proteostasis-levers.md) | The three-arm framework (barrier / chaperone / clearance), six intervention points, comparative ranking, and the patient-sequence architecture | `pvd/parts/programs.py`, the whole of `pvd/patient/`, the tier model, the recommended regimen |
 | [`disaggregase-program.md`](disaggregase-program.md) | HSPA8 + DNAJB1 + HSPH1 as a disaggregase, the AAV packaging arithmetic that defeats it as one vector, and three mechanism-specific liabilities | the `disaggregase` regimen, the HSPA8 uncoating-ATPase note, `AAV_LIMIT` / `SC_LIMIT` checks |
 | [`hsf1-program.md`](hsf1-program.md) | HSF1 upregulation across Alzheimer's, Parkinson's and prion disease; why its Parkinson's arm is the weakest of the three | the `chaperone` arm's payload ranking and the HSF1 entry in `pvd/parts/payloads.py` |
