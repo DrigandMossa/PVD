@@ -64,23 +64,37 @@ cassette.
 
 ## Download a prebuilt executable
 
-[**Releases**](https://github.com/DrigandMossa/PVD/releases/latest) — one single file, nothing
-to install.
+### In this repository
+
+**[`pvd.pyz`](pvd.pyz)** — 39 kB, runs on any OS and architecture with Python 3.8+ already
+installed. pvd is stdlib-only, so it needs nothing else.
+
+```bash
+curl -LO https://github.com/DrigandMossa/PVD/raw/main/pvd.pyz
+chmod +x pvd.pyz && ./pvd.pyz --help
+```
+
+On Windows, double-click it for the window, or run `pvd.pyz --help` in a terminal.
+
+A zipapp is committed here rather than kept out as a build artifact because it is small,
+deterministic and needs no toolchain to produce — `python -m zipapp` is in the standard
+library. It is rebuilt from the tree it ships with; if you change anything under `pvd/`,
+rebuild it (command below) or it will silently run the old code.
+
+### Native binaries
+
+[**Releases**](https://github.com/DrigandMossa/PVD/releases/latest) carries frozen binaries
+that do not need Python at all:
 
 | File | For |
 |---|---|
 | `pvd-windows-x86_64.exe` | Windows |
 | `pvd-macos-arm64` | macOS, Apple silicon |
 | `pvd-linux-x86_64` | Linux |
-| `pvd.pyz` | Any OS or architecture with Python 3.8+ already installed |
 
-Run it with no arguments for the window, or `--help` for the command-line tool. On macOS and
-Linux, `chmod +x pvd-*` first. The binaries are unsigned, so macOS Gatekeeper and Windows
+Run with no arguments for the window, or `--help` for the command-line tool. On macOS and
+Linux, `chmod +x pvd-*` first. These are unsigned, so macOS Gatekeeper and Windows
 SmartScreen will both object on first launch.
-
-`pvd.pyz` is a zipapp rather than a frozen binary — ~40 kB instead of ~10 MB, works on any
-architecture, and needs a Python already on the machine. pvd is stdlib-only, so it needs
-nothing else.
 
 ---
 
@@ -107,13 +121,15 @@ PyInstaller cross-compiles nothing: each binary must be built on its own platfor
 what the `release` workflow is for — pushing a `v*` tag builds all three on GitHub's runners,
 smoke-tests each one, and attaches them to a release along with the zipapp.
 
-The zipapp needs no build tooling at all:
+The zipapp needs no build tooling at all — `zipapp` is in the standard library:
 
 ```bash
-mkdir -p build/zapp && cp -r pvd build/zapp/
-printf '%s\n' 'import sys' 'from pvd.cli.run import main' '' 'if __name__ == "__main__":' '    sys.exit(main())' > build/zapp/__main__.py
-python -m zipapp build/zapp -o pvd.pyz -p "/usr/bin/env python3" -c
+./tools/build-zipapp.sh      # -> pvd.pyz, then runs --version and --list
 ```
+
+Run it after any change under `pvd/`. `tests/test_zipapp.py` compares the committed
+`pvd.pyz` against the tree module by module and fails if they have drifted, so a stale
+executable is caught by `pytest` rather than by whoever downloads it.
 
 `console=True` is deliberate: a windowed build opens the designer but silently discards the
 output of `--list`, `--gate` and one-shot runs.

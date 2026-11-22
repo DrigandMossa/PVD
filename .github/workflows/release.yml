@@ -57,25 +57,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # Rebuild from the tagged tree rather than shipping the committed copy,
+      # and let the drift test below decide whether the two agree.
       - name: Build pvd.pyz
-        run: |
-          mkdir -p build/zapp
-          cp -r pvd build/zapp/
-          find build/zapp -name __pycache__ -type d -exec rm -rf {} +
-          cat > build/zapp/__main__.py <<'PY'
-          """Zipapp entry point: delegates to pvd.cli.run.main."""
-
-          import sys
-
-          from pvd.cli.run import main
-
-          if __name__ == "__main__":
-              sys.exit(main())
-          PY
-          python -m zipapp build/zapp -o pvd.pyz -p "/usr/bin/env python3" -c
-          chmod +x pvd.pyz
-          ./pvd.pyz --version
-          ./pvd.pyz --list > /dev/null
+        run: ./tools/build-zipapp.sh
+      - run: pip install -r requirements-dev.txt
+      - name: Check the committed pvd.pyz was not stale
+        run: python -m pytest tests/test_zipapp.py -q
       - uses: actions/upload-artifact@v4
         with:
           name: pvd.pyz
