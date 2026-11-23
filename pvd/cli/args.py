@@ -62,11 +62,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--bins", default="", metavar="FILE",
                    help="TSV of 'bin_id<TAB>variant[,variant...]' defining the qualified haplotype panel")
     p.add_argument("--sex", default="unknown", choices=["male", "female", "unknown"],
-                   help="patient sex; hemizygous males default to the reference allele for X-linked genes")
+                   help="patient sex; for an X-linked gene, male and unknown both fall back to the "
+                        "reference allele, since neither establishes a second allele")
     p.add_argument("--route", default="in-vivo", choices=["in-vivo", "autologous"],
                    help="in-vivo vector, or autologous ex vivo engineering of the patient's own cells")
     p.add_argument("--shared-end", type=int, default=0, metavar="N",
-                   help="override the last residue of the shared region in the payload's region map")
+                   help="override the last residue of the shared region in the payload's region map; "
+                        "must be within the protein, and only applies to a payload that has such a "
+                        "boundary (LAMP2A)")
 
     p.add_argument("--capsid", default="TfR1-CapX", help="capsid (default: TfR1-CapX)")
     p.add_argument("--promoter", help="promoter (default depends on the arm)")

@@ -5,7 +5,7 @@ import sys
 from dataclasses import replace
 from typing import List, Optional
 
-from ..design.builder import build_design
+from ..design.builder import build_design, resolve_parts
 from ..export.files import write_outputs
 from ..export.gatereport import to_gate_report
 from ..gui import launch_gui
@@ -41,6 +41,10 @@ def _build_one(cfg: Config, program: str, payload: str, out: str, shared_end: in
     payload = payload or PROGRAMS[program]["default"]
     cfg = replace(cfg, program=program, payload=payload)
     if gate_only:
+        # Validate the catalogue choices even though no cassette is laid out, so --gate
+        # rejects anything the build would reject. A dry run that passes where the real
+        # run fails is worse than no dry run.
+        resolve_parts(cfg)
         gate = run_gate(cfg, payload, shared_end)
         design = Design(cfg.name or payload, program, payload, cfg.capsid, [], "", list(gate.findings), gate)
         print(to_gate_report(design, shared_end))

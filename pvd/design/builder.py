@@ -15,7 +15,15 @@ from ..seqops import clean_sequence, pick
 from .checks import check_insert
 
 
-def build_design(cfg: Config, shared_end: int = 0) -> Design:
+def resolve_parts(cfg: Config):
+    """Validate and resolve every catalogue choice: (program, payload, capsid, promoter,
+    polyA, detargeting).
+
+    Shared by the build path and the --gate path. Keeping it in one place is what makes
+    --gate a genuine dry run: it previously validated nothing but the gate itself, so a
+    payload paired with the wrong arm, or a misspelt capsid, produced a clean gate report
+    and exit 0 while the real build rejected the same command.
+    """
     program = pick(cfg.program, PROGRAMS, "program")
     P = PROGRAMS[program]
     payload = pick(cfg.payload or P["default"], PAYLOADS, "payload")
@@ -26,6 +34,11 @@ def build_design(cfg: Config, shared_end: int = 0) -> Design:
     prom = pick(cfg.promoter or P["promoter"], PROMOTERS, "promoter")
     polya = pick(cfg.polya or "synthetic", POLYA, "polyadenylation signal")
     detarget = [pick(d, DETARGET, "detargeting cassette") for d in cfg.detarget]
+    return program, payload, capsid, prom, polya, detarget
+
+
+def build_design(cfg: Config, shared_end: int = 0) -> Design:
+    program, payload, capsid, prom, polya, detarget = resolve_parts(cfg)
 
     pay = PAYLOADS[payload]
     gate: Gate = run_gate(cfg, payload, shared_end)

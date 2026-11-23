@@ -18,7 +18,7 @@ meant to add safety would remove it.
 from typing import List, Tuple
 
 from ..model import Config, Gate
-from ..parts.payloads import PAYLOADS, payload_regions
+from ..parts.payloads import PAYLOADS, payload_regions, shared_end_applies
 from . import epitope as epi
 from .parse import looks_like_cds, select_cds
 from .variants import call_variants
@@ -32,10 +32,20 @@ EXCLUDING_REGIONS = {
 
 def run_gate(cfg: Config, payload: str, shared_end: int = 0) -> Gate:
     p = PAYLOADS[payload]
+    # Validate the region override before anything else, so a bad value fails here rather
+    # than part-way through variant calling, and so a value that cannot apply is reported
+    # instead of silently discarded.
+    payload_regions(payload, shared_end)
     g = Gate(payload=payload, gene=p["gene"],
              allele="n/a" if p["synthetic"] else "reference", tier="reference",
              binder=payload if p["arm"] == "barrier" else "")
     find: List[Tuple[str, str]] = g.findings
+
+    if shared_end and not shared_end_applies(payload):
+        find.append(("warn", "--shared-end %d was ignored: %s has no shared/isoform boundary to move "
+                     "(region map: %s). The library region map was used as-is."
+                     % (shared_end, payload,
+                        ", ".join("%d-%d %s" % r for r in p["regions"]) or "none")))
 
     # ---- barrier payloads: no patient allele exists, verify the target epitope instead
     if p["synthetic"]:

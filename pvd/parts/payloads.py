@@ -113,13 +113,36 @@ TARGET = dict(gene="SNCA", cds=423, aa=140,
                    "(1-60), NAC aggregation core (61-95), acidic C-terminal tail (96-140).")
 
 
+def shared_end_applies(key: str) -> bool:
+    """Whether this payload has a shared/isoform boundary for --shared-end to move."""
+    regions = PAYLOADS[key]["regions"]
+    return len(regions) == 2 and regions[0][2] == "shared-lumenal"
+
+
 def payload_regions(key: str, shared_end: int = 0):
-    """Region map, with an optional override of the shared/isoform boundary."""
+    """Region map, with an optional override of the shared/isoform boundary.
+
+    An out-of-range shared_end is rejected rather than applied. The old code accepted
+    anything: a negative value produced regions like (1, -375) and (-374, 410), which
+    matched no position for the first region and every position for the second, so every
+    variant was relabelled isoform-specific and the shared-lumenal exclusion stopped
+    firing. One mistyped flag turned a blocked allele into a delivered one.
+    """
     p = PAYLOADS[key]
     regions = list(p["regions"])
-    if shared_end and len(regions) == 2 and regions[0][2] == "shared-lumenal":
-        regions = [(1, shared_end, "shared-lumenal"), (shared_end + 1, p["aa"], "isoform-specific")]
-    return regions
+    if not shared_end:
+        return regions
+    if not shared_end_applies(key):
+        # No boundary to move. Silently dropping the flag is the caller's cue to say so;
+        # see run_gate, which reports it rather than letting the user believe it applied.
+        return regions
+    if shared_end < 1 or shared_end >= p["aa"]:
+        raise ValueError(
+            "--shared-end %d is out of range for %s: give a residue between 1 and %d. "
+            "A value outside the protein remaps the region boundaries nonsensically and "
+            "can move a variant out of an excluding region."
+            % (shared_end, key, p["aa"] - 1))
+    return [(1, shared_end, "shared-lumenal"), (shared_end + 1, p["aa"], "isoform-specific")]
 
 
 def region_of(key: str, pos: int, shared_end: int = 0) -> str:
