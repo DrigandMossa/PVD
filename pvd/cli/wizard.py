@@ -29,6 +29,21 @@ def _ask_bool(label: str, default: bool = False) -> bool:
     return value.startswith("y")
 
 
+def _ask_path(label: str, reader=read_arg, default: str = "") -> str:
+    """Prompt until the answer is usable, rather than aborting the whole session.
+
+    read_arg now rejects a path that does not exist instead of treating it as a
+    sequence. Letting that propagate would discard every answer given so far over
+    one typo near the end of the run.
+    """
+    while True:
+        value = _ask(label, default)
+        try:
+            return reader(value)
+        except (ValueError, OSError) as exc:
+            print("  %s" % exc)
+
+
 def wizard() -> Tuple[Config, str]:
     print("pvd - patient-sequence driven vector designer\n")
     program = _ask_choice("Arm", list(PROGRAMS), "clearance")
@@ -41,16 +56,17 @@ def wizard() -> Tuple[Config, str]:
     if p["synthetic"]:
         print("%s is a synthetic binder: there is no patient allele to insert." % payload)
         print("Supply the patient's SNCA to verify the epitope (residues %d-%d)." % p["epitope"])
-        target = _ask("Patient SNCA CDS (file or sequence)")
-        target_ref = _ask("Reference SNCA CDS (file or sequence)")
+        target = _ask_path("Patient SNCA CDS (file or sequence)")
+        target_ref = _ask_path("Reference SNCA CDS (file or sequence)")
     else:
         print("Reference to fetch for %s: %s" % (payload, p["refseq"]))
-        patient = _ask("Patient %s CDS (file or sequence, blank to skip the gate)" % p["gene"])
+        patient = _ask_path("Patient %s CDS (file or sequence, blank to skip the gate)" % p["gene"])
         if patient:
-            reference = _ask("Reference %s CDS (file or sequence)" % p["gene"])
+            reference = _ask_path("Reference %s CDS (file or sequence)" % p["gene"])
 
-    classify = _ask("Classification TSV (blank for none; unclassified variants fail the gate)")
-    bins = _ask("Haplotype bin TSV (blank for none)")
+    classify = _ask_path("Classification TSV (blank for none; unclassified variants fail the gate)",
+                         read_classifications)
+    bins = _ask_path("Haplotype bin TSV (blank for none)", read_bins)
     sex = _ask_choice("Patient sex", ["male", "female", "unknown"], "unknown")
     route = _ask_choice("Route", ["in-vivo", "autologous"], "in-vivo")
 
@@ -65,8 +81,8 @@ def wizard() -> Tuple[Config, str]:
                  detarget=[] if detarget.lower() in ("none", "") else
                  [x.strip() for x in detarget.split(",") if x.strip()],
                  riboswitch=riboswitch, route=route, sex=sex,
-                 patient_seq=read_arg(patient), reference_seq=read_arg(reference),
-                 target_seq=read_arg(target), target_reference=read_arg(target_ref),
-                 classifications=read_classifications(classify), bins=read_bins(bins),
+                 patient_seq=patient, reference_seq=reference,
+                 target_seq=target, target_reference=target_ref,
+                 classifications=classify, bins=bins,
                  name=name)
     return cfg, out

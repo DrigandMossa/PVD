@@ -6,13 +6,39 @@ from typing import Dict, List, Tuple
 from ..seqops import clean_sequence, read_fasta
 
 
+SEQ_SUFFIXES = (".fa", ".fasta", ".fna", ".ffn", ".frn", ".seq", ".txt", ".gb", ".genbank")
+
+
+def looks_like_a_path(value: str) -> bool:
+    """Whether a value was plainly meant as a filename rather than a sequence.
+
+    A sequence never contains a directory separator, and no one names an inline
+    sequence something.fasta. Both tests are on the *intent*, not on existence.
+    """
+    one_line = value.strip()
+    if "\n" in one_line or not one_line:
+        return False
+    return (os.sep in one_line or (os.altsep or "/") in one_line
+            or one_line.lower().endswith(SEQ_SUFFIXES))
+
+
 def read_arg(value: str) -> str:
-    """A path to a text/FASTA file, or the sequence itself."""
+    """A path to a text/FASTA file, or the sequence itself.
+
+    A path that does not exist is an error, not a sequence. Falling through to the
+    literal string meant a mistyped filename was cleaned into nucleotides -
+    lamp2a_patient_eligble.fasta became the 10-base sequence AAATNTGATA - and the
+    user was told their CDS was malformed rather than that their path was wrong.
+    Fail-closed, but it sends them to look at the wrong thing.
+    """
     if not value:
         return ""
     if os.path.isfile(value):
         with open(value, "r", encoding="utf-8", errors="replace") as fh:
             return fh.read()
+    if looks_like_a_path(value):
+        raise ValueError("No such file: %r. Give an existing file, or an inline sequence "
+                         "(a bare sequence has no path separator and no file extension)." % value)
     return value
 
 

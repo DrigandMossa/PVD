@@ -68,9 +68,17 @@ a footnote.
    other two being sufficient. This is the honest option and also the weakest: if endogenous
    DNAJB1 or Apg2 were sufficient, the disaggregase would already be working.
 
-`pvd` implements option 3 as the `disaggregase` regimen — a staged single-gene architecture
-— because it is the only one that can be built and tested as separate, individually
-characterisable vectors.
+`pvd` implements **option 1** as the `disaggregase` regimen: two separate vectors, one
+carrying *DNAJB1* and one carrying *HSPH1*, co-administered, with endogenous *HSPA8* as the
+motor. Each packages with room to spare — 1,594 bp and 3,148 bp between the ITRs against a
+4,700 bp limit — so capacity is not what constrains this regimen. **Co-transduction is.**
+Two vectors means the fraction of neurons receiving both is the product of two
+probabilities, and a neuron that receives only one gets the liabilities below without the
+mechanism. That is why the endpoint to report is co-transduction fraction rather than
+percent transduced, and why the regimen prints exactly that warning.
+
+Any single payload can still be built on its own (`--program chaperone --payload DNAJB1`),
+which is option 3 and the weakest of the three for the reason given above.
 
 ## Three mechanism-specific liabilities
 

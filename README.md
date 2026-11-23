@@ -186,8 +186,12 @@ Two-vector regimens via `--regimen`:
 * `lamp2a+vh14` — clearance + barrier. Two points on the same kinetic curve rather than one
   node pushed harder. Both payloads are small, so each vector keeps headroom for
   detargeting and dose control.
-* `disaggregase` — DNAJB1 + HSPH1, relying on endogenous HSPA8 as the motor. 3.6 kb of CDS:
-  the pair spends the whole packaging budget.
+* `disaggregase` — DNAJB1 + HSPH1 as **two co-administered vectors**, relying on endogenous
+  HSPA8 as the motor. 3.6 kb of CDS between them, which is why they cannot share one
+  genome; separately they package comfortably (1,594 bp and 3,148 bp cassettes). The
+  binding constraint is not capacity but **co-transduction**: the disaggregase only works
+  where both genomes reach the same neuron, so the number to report is co-transduction
+  fraction, not percent transduced.
 
 ### Synthetic payloads have no patient allele
 
