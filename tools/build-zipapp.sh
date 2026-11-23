@@ -22,6 +22,18 @@ if __name__ == "__main__":
     sys.exit(main())
 PY
 
+# Pin every mtime before zipping. zipapp stores each file's modification time in the
+# archive, and a fresh `git clone` stamps the working tree with the checkout time, so
+# without this the artifact is reproducible in content but not in bytes: two builds of
+# the same commit differ, and `git status` reports pvd.pyz dirty after anyone runs this
+# script. Honours SOURCE_DATE_EPOCH if the caller sets it.
+if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
+  STAMP="$(date -u -d "@${SOURCE_DATE_EPOCH}" +%Y%m%d%H%M.%S 2>/dev/null || echo 202001010000.00)"
+else
+  STAMP="202001010000.00"
+fi
+find build/zapp -exec touch -t "$STAMP" {} +
+
 python3 -m zipapp build/zapp -o pvd.pyz -p "/usr/bin/env python3" -c
 chmod +x pvd.pyz
 rm -rf build/zapp

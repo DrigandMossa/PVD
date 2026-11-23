@@ -68,6 +68,23 @@ def test_zipapp_sources_are_identical_to_the_tree():
 
 
 @needs_pyz
+def test_zipapp_timestamps_are_pinned():
+    """Every entry must carry the fixed build stamp, not a checkout time.
+
+    zipapp records each file's mtime, and `git clone` stamps the tree with the time of
+    the clone. Without pinning, two builds of the same commit differ in bytes and
+    `git status` reports pvd.pyz dirty for anyone who runs the build script. A stray
+    real timestamp here means the archive was built without tools/build-zipapp.sh.
+    """
+    with zipfile.ZipFile(PYZ) as zf:
+        stamps = {i.date_time for i in zf.infolist()}
+    assert stamps == {(2020, 1, 1, 0, 0, 0)}, (
+        "unpinned timestamps in pvd.pyz: %s; rebuild with tools/build-zipapp.sh"
+        % sorted(stamps)
+    )
+
+
+@needs_pyz
 def test_zipapp_entry_point_is_present():
     with zipfile.ZipFile(PYZ) as zf:
         assert "__main__.py" in zf.namelist()
