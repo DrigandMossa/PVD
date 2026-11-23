@@ -50,7 +50,9 @@ of these hold:
 2. a reference CDS was supplied and both translate to the same length
 3. at least one coding difference exists (otherwise reference is the same molecule)
 4. no difference falls in a region the payload's rule excludes
-5. the gene is not X-linked in a male patient carrying a coding variant
+5. for an X-linked gene the patient's sex is known, and is not male, where a coding variant
+   exists — unknown sex is treated exactly like an unclassified variant, because it is the
+   same epistemic position
 6. every difference carries an explicit **benign** or **likely-benign** classification
 
 **Unclassified means reference.** Without rule 6, "patient-derived" would mean

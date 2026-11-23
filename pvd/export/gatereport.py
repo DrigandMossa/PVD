@@ -11,7 +11,8 @@ RULES = [
     "a reference CDS was supplied and both translate to the same length",
     "at least one coding difference exists (otherwise reference is the same molecule)",
     "no difference falls in a region the payload's rule excludes",
-    "the gene is not X-linked in a male patient carrying a coding variant",
+    "for an X-linked gene the patient's sex is known, and is not male, where a coding "
+    "variant exists",
     "every difference carries an explicit benign or likely-benign classification",
 ]
 

@@ -115,7 +115,7 @@ every single one:
 2. Did you give me a reference copy to compare against?
 3. Is the patient's copy actually *different* from the reference? (If it's identical, it's the same molecule — the question is meaningless.)
 4. Is every difference outside the regions known to be dangerous?
-5. Is this a gene on the X chromosome in a male patient? (Males have one X, so there's no second copy to compare against, and a difference can't be judged safe just by looking.)
+5. Is this a gene on the X chromosome in a male patient? (Males have one X, so there's no second copy to compare against, and a difference can't be judged safe just by looking.) **And if you didn't say whether the patient is male, that's a fail too** — "I don't know" can't count as "no".
 6. Has a lab explicitly classified every difference as harmless?
 
 **Fail any one, and pvd uses the reference copy instead and tells you exactly why.**
@@ -285,7 +285,8 @@ be called harmless just by looking at it.
 ```
   [error] Patient SNCA carries 1 coding change(s) inside the NAC domain: A91D.
           The stock binder may bind this patient's alpha-synuclein poorly.
-  [info]  Barrier payload(s) whose epitope window avoids every hit: NAC32.
+  [info]  Barrier payload(s) whose epitope window contains none of this patient's
+          coding changes: NAC32.
 ```
 
 The barrier medicine works by **grabbing** alpha-synuclein at one specific spot to stop it

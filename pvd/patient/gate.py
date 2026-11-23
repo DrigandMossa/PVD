@@ -6,7 +6,8 @@ The default answer is no.  A patient allele is delivered only when every one of 
   * a reference CDS was supplied, and patient and reference translate to the same length
   * at least one coding difference exists (otherwise reference is the same molecule)
   * no difference falls in a region the payload's rule excludes
-  * the gene is not X-linked in a male patient with a coding variant
+  * the gene is not X-linked in a male patient with a coding variant, and where the gene is
+    X-linked the patient's sex is known at all
   * every difference carries an explicit benign or likely-benign classification
 
 Unclassified means reference.  Without that rule "patient-derived" would mean
@@ -43,14 +44,20 @@ def run_gate(cfg: Config, payload: str, shared_end: int = 0) -> Gate:
                      % payload))
         t_pat = select_cds(cfg.target_seq, "SNCA")[0]
         t_ref = select_cds(cfg.target_reference, "SNCA")[0]
-        hits, f = epi.verify(payload, t_pat, t_ref, cfg.classifications)
+        hits, every, f = epi.verify(payload, t_pat, t_ref, cfg.classifications)
         g.epitope = hits
         find.extend(f)
         if hits:
-            alt = epi.alternative_payloads(payload, hits)
+            alt = epi.alternative_payloads(payload, hits, every)
             if alt:
-                find.append(("info", "Barrier payload(s) whose epitope window avoids every hit: %s."
-                             % ", ".join(alt)))
+                find.append(("info", "Barrier payload(s) whose epitope window contains none of this "
+                             "patient's coding changes: %s." % ", ".join(alt)))
+            else:
+                # Saying nothing here reads as "no alternative was considered". The patient
+                # needs a re-engineered binder, which is a different and larger decision.
+                find.append(("error", "No stocked barrier payload has an epitope window clear of this "
+                             "patient's coding changes. A binder must be re-selected or re-engineered "
+                             "against this patient's alpha-synuclein; no catalogue payload fits."))
         g.tier = "autologous" if cfg.route == "autologous" else "stock"
         _note_tier(g, cfg)
         return g
@@ -60,8 +67,16 @@ def run_gate(cfg: Config, payload: str, shared_end: int = 0) -> Gate:
     ref = select_cds(cfg.reference_seq, p["gene"])[0]
 
     if not pat:
-        find.append(("info", "No patient sequence supplied, so the reference %s allele is used. Supply "
-                     "--patient and --reference to run the gate." % payload))
+        if (cfg.patient_seq or "").strip():
+            # Something was supplied and nothing usable came out of it: a wrong path, a
+            # binary file, a protein FASTA. Reporting that as "none supplied" at info level
+            # lets a typo pass for a deliberate choice of the reference allele.
+            find.append(("warn", "A patient sequence was supplied but no A, C, G, T or N could be read "
+                         "from it, so the reference %s allele is used. Check the path and that the file "
+                         "is nucleotide FASTA rather than protein or a binary format." % payload))
+        else:
+            find.append(("info", "No patient sequence supplied, so the reference %s allele is used. Supply "
+                         "--patient and --reference to run the gate." % payload))
         g.tier = "autologous" if cfg.route == "autologous" else "reference"
         _note_tier(g, cfg)
         return g
@@ -113,8 +128,15 @@ def run_gate(cfg: Config, payload: str, shared_end: int = 0) -> Gate:
                      % (p["gene"], p["locus"])))
         blocked = True
     if variants and p.get("x_linked") and cfg.sex == "unknown":
-        find.append(("warn", "%s is X-linked and the patient's sex was not given. Hemizygous males default "
-                     "to reference: set --sex to apply that rule." % p["gene"]))
+        # Unknown sex on an X-linked gene is the same epistemic position as an unclassified
+        # variant, so it gets the same answer. Warning and then delivering the patient allele
+        # anyway would make the default path the unsafe one, and would contradict this
+        # message. --sex female is the way to assert the second allele exists.
+        find.append(("error", "%s is X-linked (%s) and the patient's sex was not given, so hemizygosity "
+                     "cannot be ruled out and no second allele is known to exist. Reference allele is "
+                     "used. Set --sex female to assert a second allele, or --sex male to confirm the "
+                     "exclusion." % (p["gene"], p["locus"])))
+        blocked = True
 
     if blocked:
         g.allele, g.tier = "reference", ("autologous" if cfg.route == "autologous" else "reference")

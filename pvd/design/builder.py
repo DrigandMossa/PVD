@@ -32,8 +32,20 @@ def build_design(cfg: Config, shared_end: int = 0) -> Design:
     msgs: List[Tuple[str, str]] = []
 
     # ---- choose the coding sequence that actually goes in -------------
+    # A goi override is resolved before the cassette is laid out, not after. The stop-codon
+    # decision and the feature label both depend on the insert, so applying it afterwards
+    # appended a redundant stop to a construct that already ended in one and left the
+    # feature labelled "typical length" in the GenBank export.
+    goi_override = ""
+    if "goi" in cfg.overrides:
+        goi_override, _ = clean_sequence(cfg.overrides["goi"])
+        if not goi_override:
+            raise ValueError("Override for 'goi' contains no A, C, G, T or N.")
+
     insert, bad = "", 0
-    if pay["synthetic"]:
+    if goi_override:
+        insert, source = goi_override, "supplied construct"
+    elif pay["synthetic"]:
         # No patient or reference allele exists for a selected binder, and the payload-gene
         # FASTA on the command line belongs to a different payload: never borrow from it.
         # The construct arrives only via --override goi=FILE.
